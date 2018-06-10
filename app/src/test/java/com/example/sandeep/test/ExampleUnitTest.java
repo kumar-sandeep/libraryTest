@@ -2,6 +2,8 @@ package com.example.sandeep.test;
 
 import org.junit.Test;
 
+import java.util.regex.Pattern;
+
 import static org.junit.Assert.*;
 
 /**
@@ -12,6 +14,7 @@ import static org.junit.Assert.*;
 public class ExampleUnitTest {
     @Test
     public void addition_isCorrect() {
-        assertEquals(4, 2 + 2);
+//        assertEquals(4, 2 + 2);
+        assertEquals(true,Pattern.matches("\\d{10}","12312311fa"));
     }
 }

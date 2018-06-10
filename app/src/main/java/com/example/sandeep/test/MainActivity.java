@@ -7,12 +7,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
 import java.util.Calendar;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
     View focusView;
@@ -22,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText name, email, mobile;
     private int year, month, day;
     private Button next;
+    private ImageButton selectDate;
     private DatePickerDialog.OnDateSetListener myDateListener = new
             DatePickerDialog.OnDateSetListener() {
                 @Override
@@ -41,6 +49,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getSupportActionBar().hide();
+
         dateView = (EditText) findViewById(R.id.Dob);
         calendar = Calendar.getInstance();
         year = calendar.get(Calendar.YEAR);
@@ -48,17 +60,17 @@ public class MainActivity extends AppCompatActivity {
         email = (EditText) findViewById(R.id.email_id);
         mobile = (EditText) findViewById(R.id.mobile_no_signup);
         next = (Button) findViewById(R.id.signup_button);
-
+        selectDate = (ImageButton) findViewById(R.id.select_date);
         month = calendar.get(Calendar.MONTH);
         day = calendar.get(Calendar.DAY_OF_MONTH);
 //        showDate(year, month + 1, day);
 
-        dateView.setOnClickListener(new View.OnClickListener() {
+        /*dateView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showDialog(999);
             }
-        });
+        });*/
         next.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -69,18 +81,18 @@ public class MainActivity extends AppCompatActivity {
 
                     if (!validateAge(Integer.parseInt(arr[2]), Integer.parseInt(arr[1]), Integer.parseInt(arr[0]))) {
                         Log.d("Age is", "validateAge");
-                        dateView.setError("Age cannot be less than 13 years");
+                        dateView.setError("Age must be greater than 13 years");
                         focusView = dateView;
                         cancel = true;
                     }
                 } catch (Exception e) {
-                    dateView.setError("Date is wrong");
+                    dateView.setError("Date Of Birth is wrong");
                     focusView = dateView;
                     cancel = true;
                 }
 
                 if (TextUtils.isEmpty(dateView.getText())) {
-                    dateView.setError("Date cannot be empty");
+                    dateView.setError("Date of Birth cannot be empty");
                     focusView = dateView;
                     cancel = true;
                 }
@@ -94,16 +106,48 @@ public class MainActivity extends AppCompatActivity {
                     email.setError("Email be empty");
                     focusView = email;
                     cancel = true;
+                } else if (!validateEmail(email.getText().toString())) {
+                    email.setError("Email format is wrong");
+                    focusView = email;
+                    cancel = true;
+                }
+                if (!TextUtils.isEmpty(mobile.getText()) && !validateMobileFormat(mobile.getText().toString())) {
+                    mobile.setError("Mobile no must be 10 digits");
+                    focusView = mobile;
+                    cancel = true;
                 }
                 if (cancel) {
                     focusView.requestFocus();
                 } else {
-                    Toast.makeText(getApplicationContext(), " Success", Toast.LENGTH_SHORT).show();
                     dateView.setError(null);
+                    writeToFirebase();
                 }
             }
         });
 
+        selectDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDialog(999);
+                dateView.setError(null);
+            }
+        });
+
+    }
+
+    private void writeToFirebase() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference myRef = database.getReference("users");
+        UserModel userModel = new UserModel(email.getText().toString()
+                , name.getText().toString()
+                , mobile.getText().toString()
+                , dateView.getText().toString());
+        myRef.setValue(userModel).addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Toast.makeText(getApplicationContext(), " Success", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
@@ -114,6 +158,14 @@ public class MainActivity extends AppCompatActivity {
                     myDateListener, year, month, day);
         }
         return null;
+    }
+
+    private boolean validateEmail(String email) {
+        return Pattern.matches("[\\w\\.]+@[\\w]+\\..+", email);
+    }
+
+    private boolean validateMobileFormat(String mobile) {
+        return Pattern.matches("\\d{10}", mobile);
     }
 
     private boolean validateAge(int year, int month, int day) {
@@ -138,7 +190,6 @@ public class MainActivity extends AppCompatActivity {
 //            showDialog(999);
             return false;
         }
-
     }
 
     private void showDate(int year, int month, int day) {
